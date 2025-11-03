@@ -8,13 +8,13 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import kotlinx.coroutines.launch
 import androidx.navigation.NavController
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddAnnouncementScreen(
-    onAnnouncementAdded: () -> Unit,
+    // onAnnouncementAdded: () -> Unit, // <-- 1. THIS PARAMETER IS REMOVED
     navController: NavController,
     viewModel: AdminViewModel
 ) {
@@ -27,7 +27,6 @@ fun AddAnnouncementScreen(
 
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
-        topBar = { TopAppBar(title = { Text("Add Announcement") }) }
     ) { padding ->
         Column(
             modifier = Modifier
@@ -62,7 +61,8 @@ fun AddAnnouncementScreen(
                     if (title.isNotBlank() && message.isNotBlank()) {
                         viewModel.addAnnouncement(title, message, isUrgent) { success ->
                             if (success) {
-                                onAnnouncementAdded()
+                                // 2. The screen now handles its own navigation back
+                                navController.popBackStack()
                             } else {
                                 scope.launch { snackbarHostState.showSnackbar("Failed to add announcement.") }
                             }

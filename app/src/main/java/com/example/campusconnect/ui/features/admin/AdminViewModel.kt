@@ -1,6 +1,7 @@
 package com.example.campusconnect.ui.features.admin
 
 import android.net.Uri
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.cloudinary.android.MediaManager
@@ -30,8 +31,6 @@ data class AdminState(
 
 class AdminViewModel : ViewModel() {
     private val firestore = Firebase.firestore
-    // Firebase Storage is no longer needed for this view model
-    // private val storage = Firebase.storage
     private val _state = MutableStateFlow(AdminState())
     val state = _state.asStateFlow()
 
@@ -107,7 +106,7 @@ class AdminViewModel : ViewModel() {
         }
     }
 
-    // --- Faculty Functions (Updated for Cloudinary) ---
+    // --- Faculty Functions ---
 
     private fun fetchFacultyMembers() {
         _state.update { it.copy(isLoading = true) }
@@ -123,10 +122,14 @@ class AdminViewModel : ViewModel() {
         }
     }
 
+    /**
+     * MODIFIED: Now includes the 'email' parameter.
+     */
     fun addFacultyMember(
         name: String,
         department: String,
         officeLocation: String,
+        email: String, // Added email
         timetable: Map<String, String>,
         imageUri: Uri,
         onComplete: (Boolean) -> Unit
@@ -134,31 +137,28 @@ class AdminViewModel : ViewModel() {
         viewModelScope.launch {
             _state.update { it.copy(isUploading = true) }
             try {
-                // 1. Upload the image to Cloudinary and wait for the URL
                 val imageUrl = uploadImageToCloudinary(imageUri)
-
                 if (imageUrl == null) {
-                    // Handle image upload failure
-                    println("Cloudinary upload failed.")
+                    Log.e("AdminViewModel", "Cloudinary upload failed.")
                     onComplete(false)
                     _state.update { it.copy(isUploading = false) }
                     return@launch
                 }
 
-                // 2. Save faculty member to Firestore with the Cloudinary URL
                 val document = firestore.collection("facultyMembers").document()
                 val newMember = FacultyMember(
                     id = document.id,
                     name = name,
                     department = department,
                     officeLocation = officeLocation,
-                    imageUrl = imageUrl, // Use the URL from Cloudinary
+                    email = email, // Added email
+                    imageUrl = imageUrl,
                     timetable = timetable
                 )
                 document.set(newMember).await()
                 onComplete(true)
             } catch (e: Exception) {
-                e.printStackTrace()
+                Log.e("AdminViewModel", "Error adding faculty member", e)
                 onComplete(false)
             } finally {
                 _state.update { it.copy(isUploading = false) }
@@ -166,46 +166,38 @@ class AdminViewModel : ViewModel() {
         }
     }
 
-    // New helper function to wrap Cloudinary's callback in a coroutine
+    // Helper function to upload images to Cloudinary
     private suspend fun uploadImageToCloudinary(imageUri: Uri): String? = suspendCoroutine { continuation ->
         MediaManager.get().upload(imageUri)
             .callback(object : UploadCallback {
                 override fun onStart(requestId: String?) {}
                 override fun onProgress(requestId: String?, bytes: Long, totalBytes: Long) {}
-
                 override fun onSuccess(requestId: String?, resultData: MutableMap<Any?, Any?>?) {
                     val url = resultData?.get("secure_url") as? String
-                    continuation.resume(url) // Return the secure URL
+                    continuation.resume(url)
                 }
-
                 override fun onError(requestId: String?, error: ErrorInfo?) {
-                    println("Cloudinary Error: ${error?.description}")
-                    continuation.resume(null) // Return null on failure
+                    Log.e("AdminViewModel", "Cloudinary Error: ${error?.description}")
+                    continuation.resume(null)
                 }
-
                 override fun onReschedule(requestId: String?, error: ErrorInfo?) {}
             })
             .dispatch()
     }
 
-    fun updateFacultyMember(
-        facultyId: String,
-        name: String,
-        department: String,
-        office: String,
-        onComplete: (Boolean) -> Unit
-    ) {
+    /**
+     * MODIFIED: This function now accepts a complete FacultyMember object,
+     * which is cleaner and supports updating all fields at once.
+     */
+    fun updateFacultyMember(facultyMember: FacultyMember, onComplete: (Boolean) -> Unit) {
         viewModelScope.launch {
             try {
-                firestore.collection("facultyMembers").document(facultyId)
-                    .update(mapOf(
-                        "name" to name,
-                        "department" to department,
-                        "officeLocation" to office
-                    )).await()
+                firestore.collection("facultyMembers").document(facultyMember.id)
+                    .set(facultyMember) // .set() overwrites the document with the new data
+                    .await()
                 onComplete(true)
             } catch (e: Exception) {
-                e.printStackTrace()
+                Log.e("AdminViewModel", "Error updating faculty member", e)
                 onComplete(false)
             }
         }
@@ -217,7 +209,7 @@ class AdminViewModel : ViewModel() {
                 firestore.collection("facultyMembers").document(facultyId).delete().await()
                 onComplete(true)
             } catch (e: Exception) {
-                e.printStackTrace()
+                Log.e("AdminViewModel", "Error deleting faculty member", e)
                 onComplete(false)
             }
         }

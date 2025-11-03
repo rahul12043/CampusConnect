@@ -1,28 +1,21 @@
 package com.example.campusconnect.ui.features
 
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
-// Explicit imports for clarity
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.*
 import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import com.example.campusconnect.auth.AuthViewModel
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.sp
 import androidx.navigation.NavType
-import com.example.campusconnect.ui.features.note_sharing.CreateNoteScreen
-import com.example.campusconnect.ui.features.note_sharing.NoteSharingScreen
 import androidx.navigation.compose.*
 import androidx.navigation.navArgument
+import com.example.campusconnect.auth.AuthViewModel
 import com.example.campusconnect.navigation.Screen
 import com.example.campusconnect.ui.features.digitalqueue.CafeteriaMenuScreen
 import com.example.campusconnect.ui.features.digitalqueue.CafeteriaViewModel
@@ -32,6 +25,8 @@ import com.example.campusconnect.ui.features.faculty_connect.FacultyViewModel
 import com.example.campusconnect.ui.features.lostandfound.LostAndFoundScreen
 import com.example.campusconnect.ui.features.lostandfound.LostFoundListViewModel
 import com.example.campusconnect.ui.features.lostandfound.ReportItemScreen
+import com.example.campusconnect.ui.features.note_sharing.CreateNoteScreen
+import com.example.campusconnect.ui.features.note_sharing.NoteSharingScreen
 import com.example.campusconnect.ui.features.note_sharing.NoteSharingViewModel
 import com.example.campusconnect.ui.features.peerskill.CreateSkillRequestScreen
 import com.example.campusconnect.ui.features.peerskill.PeerSkillScreen
@@ -39,8 +34,11 @@ import com.example.campusconnect.ui.features.peerskill.PeerSkillViewModel
 import com.example.campusconnect.ui.features.utility.*
 import com.google.firebase.auth.ktx.auth
 import com.google.firebase.ktx.Firebase
+import androidx.compose.animation.*
+import androidx.compose.animation.core.tween
+import androidx.compose.ui.graphics.Color
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalAnimationApi::class)
 @Composable
 fun MainScreen(onLogout: () -> Unit) {
     val navController = rememberNavController()
@@ -49,14 +47,13 @@ fun MainScreen(onLogout: () -> Unit) {
     val authViewModel: AuthViewModel = viewModel()
 
     val title = when {
-        currentRoute == Screen.Home.route -> "Campus Connect+"
+        currentRoute == Screen.Home.route -> "NM360"
         currentRoute == Screen.DigitalQueue.route -> "Cafeteria Menu"
         currentRoute == Screen.LostAndFound.route -> "Lost & Found"
         currentRoute == Screen.ReportLostFoundItem.route -> "Report an Item"
         currentRoute == Screen.NoteSharing.route -> "Peer Help"
         currentRoute == Screen.PeerSkill.route -> "PeerSkill Hub"
         currentRoute == Screen.CreateSkillRequest.route -> "Request Help"
-        currentRoute == Screen.IdeaIncubator.route -> "Idea Incubator"
         currentRoute == Screen.FacultyConnect.route -> "Faculty Directory"
         currentRoute == Screen.FlashcardGenerator.route -> "AI Flashcard Generator"
         currentRoute?.startsWith("faculty_detail/") == true -> "Faculty Details"
@@ -66,7 +63,19 @@ fun MainScreen(onLogout: () -> Unit) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(title) },
+                title = {
+                    if (currentRoute == Screen.Home.route) {
+                        AnimatedHomeTitle()
+                    } else {
+                        Text(
+                            text = title,
+                            color = MaterialTheme.colorScheme.onPrimary,
+                            style = MaterialTheme.typography.titleLarge.copy(
+                                fontWeight = FontWeight.Bold
+                            )
+                        )
+                    }
+                },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.primary,
                     titleContentColor = MaterialTheme.colorScheme.onPrimary
@@ -74,7 +83,11 @@ fun MainScreen(onLogout: () -> Unit) {
                 navigationIcon = {
                     if (currentRoute != Screen.Home.route) {
                         IconButton(onClick = { navController.navigateUp() }) {
-                            Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back", tint = MaterialTheme.colorScheme.onPrimary)
+                            Icon(
+                                Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = "Back",
+                                tint = MaterialTheme.colorScheme.onPrimary
+                            )
                         }
                     }
                 },
@@ -83,7 +96,11 @@ fun MainScreen(onLogout: () -> Unit) {
                         Firebase.auth.signOut()
                         onLogout()
                     }) {
-                        Icon(Icons.AutoMirrored.Filled.ExitToApp, "Logout", tint = MaterialTheme.colorScheme.onPrimary)
+                        Icon(
+                            Icons.AutoMirrored.Filled.ExitToApp,
+                            contentDescription = "Logout",
+                            tint = MaterialTheme.colorScheme.onPrimary
+                        )
                     }
                 }
             )
@@ -96,17 +113,13 @@ fun MainScreen(onLogout: () -> Unit) {
         ) {
             composable(Screen.Home.route) { HomeScreen(navController = navController) }
 
-            // --- THIS BLOCK IS NOW CORRECT ---
             composable(Screen.DigitalQueue.route) {
-                val cafeteriaViewModel: CafeteriaViewModel = viewModel() // Hoisted
-                CafeteriaMenuScreen(
-                    viewModel = cafeteriaViewModel,
-                    authViewModel = authViewModel // Correctly passing the parameter
-                )
+                val cafeteriaViewModel: CafeteriaViewModel = viewModel()
+                CafeteriaMenuScreen(viewModel = cafeteriaViewModel, authViewModel = authViewModel)
             }
 
             composable(Screen.LostAndFound.route) {
-                val lostFoundListViewModel: LostFoundListViewModel = viewModel() // Hoisted
+                val lostFoundListViewModel: LostFoundListViewModel = viewModel()
                 LostAndFoundScreen(
                     onReportItemClick = { navController.navigate(Screen.ReportLostFoundItem.route) },
                     viewModel = lostFoundListViewModel
@@ -117,7 +130,7 @@ fun MainScreen(onLogout: () -> Unit) {
             }
 
             composable(Screen.NoteSharing.route) {
-                val noteSharingViewModel: NoteSharingViewModel = viewModel() // Hoisted
+                val noteSharingViewModel: NoteSharingViewModel = viewModel()
                 NoteSharingScreen(
                     navController = navController,
                     authViewModel = authViewModel,
@@ -129,7 +142,7 @@ fun MainScreen(onLogout: () -> Unit) {
             }
 
             composable(Screen.PeerSkill.route) {
-                val peerSkillViewModel: PeerSkillViewModel = viewModel() // Hoisted
+                val peerSkillViewModel: PeerSkillViewModel = viewModel()
                 PeerSkillScreen(
                     navController = navController,
                     authViewModel = authViewModel,
@@ -147,7 +160,7 @@ fun MainScreen(onLogout: () -> Unit) {
             }
 
             composable(Screen.FacultyConnect.route) {
-                val facultyViewModel: FacultyViewModel = viewModel() // Hoisted
+                val facultyViewModel: FacultyViewModel = viewModel()
                 FacultyListScreen(navController = navController, viewModel = facultyViewModel)
             }
             composable(
@@ -162,6 +175,42 @@ fun MainScreen(onLogout: () -> Unit) {
 
             composable(Screen.MindMingle.route) { MindMingleScreen(navController) }
             composable(Screen.IdeaIncubator.route) { IdeaIncubatorScreen(navController) }
+        }
+    }
+}
+
+/* --- NM360 Branded Animated Title --- */
+@Composable
+fun AnimatedHomeTitle() {
+    var visible by remember { mutableStateOf(false) }
+
+    LaunchedEffect(Unit) {
+        visible = true
+    }
+
+    AnimatedVisibility(
+        visible = visible,
+        enter = fadeIn(animationSpec = tween(800)),
+        exit = fadeOut()
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                text = "Campus",
+                style = MaterialTheme.typography.headlineMedium.copy(
+                    color = MaterialTheme.colorScheme.onPrimary,
+                    fontWeight = FontWeight.ExtraBold,
+                    letterSpacing = 2.sp
+                )
+            )
+            Text(
+                text = " Connect",
+                style = MaterialTheme.typography.headlineMedium.copy(
+                    color = MaterialTheme.colorScheme.onPrimary,
+                    fontWeight = FontWeight.ExtraBold,
+                    letterSpacing = 2.sp
+                )
+
+            )
         }
     }
 }

@@ -22,17 +22,17 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import androidx.navigation.NavType
-import androidx.navigation.navArgument
 import androidx.navigation.compose.*
+import androidx.navigation.navArgument
 import com.google.firebase.auth.ktx.auth
 import com.google.firebase.ktx.Firebase
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AdminDashboardScreen(onLogout: () -> Unit) {
-    // FIX: The redundant CampusConnectTheme wrapper has been removed.
     val navController = rememberNavController()
     val adminViewModel: AdminViewModel = viewModel()
+    // This ViewModel is now required because you are uncommenting the routes that use it.
     val userManagementViewModel: UserManagementViewModel = viewModel()
 
     val navBackStackEntry by navController.currentBackStackEntryAsState()
@@ -64,10 +64,7 @@ fun AdminDashboardScreen(onLogout: () -> Unit) {
                 navigationIcon = {
                     if (currentRoute != "admin_home") {
                         IconButton(onClick = { navController.navigateUp() }) {
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                                contentDescription = "Back"
-                            )
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
                         }
                     }
                 },
@@ -76,10 +73,7 @@ fun AdminDashboardScreen(onLogout: () -> Unit) {
                         Firebase.auth.signOut()
                         onLogout()
                     }) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ExitToApp,
-                            contentDescription = "Logout"
-                        )
+                        Icon(Icons.AutoMirrored.Filled.ExitToApp, "Logout")
                     }
                 }
             )
@@ -97,34 +91,25 @@ fun AdminDashboardScreen(onLogout: () -> Unit) {
             composable("add_faculty") {
                 AddFacultyScreen(
                     navController = navController,
-                    onFacultyAdded = { navController.popBackStack() },
                     viewModel = adminViewModel
                 )
             }
-            composable(
-                route = "edit_faculty/{facultyId}",
-                arguments = listOf(navArgument("facultyId") { type = NavType.StringType })
-            ) { backStackEntry ->
-                val facultyId = backStackEntry.arguments?.getString("facultyId")
+            composable("edit_faculty/{facultyId}", listOf(navArgument("facultyId") { type = NavType.StringType })) {
+                val facultyId = it.arguments?.getString("facultyId")
                 if (facultyId != null) {
-                    EditFacultyScreen(
-                        navController = navController,
-                        facultyId = facultyId,
-                        viewModel = adminViewModel
-                    )
+                    EditFacultyScreen(navController, facultyId, adminViewModel)
                 }
             }
+
+            // --- THIS IS THE FIX: UNCOMMENT THESE ROUTES ---
             composable("manage_users") {
                 UserManagementScreen(
                     navController = navController,
                     viewModel = userManagementViewModel
                 )
             }
-            composable(
-                route = "edit_user/{userId}",
-                arguments = listOf(navArgument("userId") { type = NavType.StringType })
-            ) { backStackEntry ->
-                val userId = backStackEntry.arguments?.getString("userId")
+            composable("edit_user/{userId}", listOf(navArgument("userId") { type = NavType.StringType })) {
+                val userId = it.arguments?.getString("userId")
                 if (userId != null) {
                     EditUserScreen(
                         navController = navController,
@@ -133,35 +118,27 @@ fun AdminDashboardScreen(onLogout: () -> Unit) {
                     )
                 }
             }
+            // --- END OF FIX ---
+
             composable("manage_announcements") {
-                ManageAnnouncementsScreen(
-                    navController = navController,
-                    viewModel = adminViewModel
-                )
+                ManageAnnouncementsScreen(navController, adminViewModel)
             }
             composable("add_announcement") {
                 AddAnnouncementScreen(
                     navController = navController,
-                    onAnnouncementAdded = { navController.popBackStack() },
                     viewModel = adminViewModel
                 )
             }
-            composable(
-                route = "edit_announcement/{announcementId}",
-                arguments = listOf(navArgument("announcementId") { type = NavType.StringType })
-            ) { backStackEntry ->
-                val announcementId = backStackEntry.arguments?.getString("announcementId")
+            composable("edit_announcement/{announcementId}", listOf(navArgument("announcementId") { type = NavType.StringType })) {
+                val announcementId = it.arguments?.getString("announcementId")
                 if (announcementId != null) {
-                    EditAnnouncementScreen(
-                        navController = navController,
-                        announcementId = announcementId,
-                        viewModel = adminViewModel
-                    )
+                    EditAnnouncementScreen(navController, announcementId, adminViewModel)
                 }
             }
         }
     }
 }
+
 
 @Composable
 fun AdminHome(navController: NavController) {
@@ -186,7 +163,6 @@ fun AdminHome(navController: NavController) {
 @Composable
 fun AdminFeatureCard(feature: AdminFeature, onClick: () -> Unit) {
     Card(
-        // FIX: The clickable modifier has been updated to be M3 compatible.
         modifier = Modifier
             .fillMaxWidth()
             .clickable(

@@ -69,13 +69,15 @@ dependencies {
     implementation("androidx.compose.ui:ui-graphics")
     implementation("androidx.compose.ui:ui-tooling-preview")
     implementation("androidx.compose.material3:material3")
+    implementation ("androidx.compose.foundation:foundation")
     implementation("androidx.compose.material:material-icons-extended")
-
     // Navigation for Compose
     implementation("androidx.navigation:navigation-compose:2.7.7")
 
     // ViewModel with Compose
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.0")
+
+    
 
     // Firebase Bill of Materials (BOM)
     implementation(platform("com.google.firebase:firebase-bom:33.1.0"))
@@ -108,6 +110,8 @@ dependencies {
     implementation("androidx.compose.animation:animation")
     implementation("androidx.compose.animation:animation-tooling-internal:1.6.6")
     implementation(libs.androidx.animation)
+    implementation(libs.androidx.ui)
+    implementation(libs.androidx.foundation.layout)
 
     testImplementation("junit:junit:4.13.2")
     androidTestImplementation("androidx.test.ext:junit:1.1.5")

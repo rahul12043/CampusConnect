@@ -46,7 +46,6 @@ fun HomeScreen(
         Feature("Lost & Found", Icons.Default.Search, Screen.LostAndFound.route),
         Feature("Peer Help", Icons.Default.Forum, Screen.NoteSharing.route),
         Feature("PeerSkill Hub", Icons.Default.School, Screen.PeerSkill.route), // This line is correct
-        Feature("Idea Incubator", Icons.Default.Lightbulb, Screen.IdeaIncubator.route),
         Feature("Faculty Connect", Icons.Default.PersonPin, Screen.FacultyConnect.route),
         Feature("AI Flashcards", Icons.Default.AutoAwesome, Screen.FlashcardGenerator.route)
     )

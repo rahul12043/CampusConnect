@@ -30,7 +30,6 @@ data class LostFoundItem(
 
     @get:PropertyName("claimed_by") @set:PropertyName("claimed_by")
     var claimedBy: String? = null,
-
     val timestamp: Timestamp? = null,
 
     // This field was in your original code and is useful for display.
