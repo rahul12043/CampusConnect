@@ -1,8 +1,18 @@
+import java.util.Properties
+import java.io.FileInputStream
+
 plugins {
+
+
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
     id("org.jetbrains.kotlin.plugin.compose")
     id("com.google.gms.google-services")
+}
+val localProperties = Properties()
+val localPropertiesFile = rootProject.file("local.properties")
+if (localPropertiesFile.exists()) {
+    localProperties.load(FileInputStream(localPropertiesFile))
 }
 
 
@@ -14,6 +24,7 @@ android {
     compileSdk = 35
 
     defaultConfig {
+        buildConfigField("String", "GEMINI_API_KEY", "\"${localProperties.getProperty("GEMINI_API_KEY")}\"")
 
         buildConfigField("String", "CLOUDINARY_URL", "\"${project.findProperty("CLOUDINARY_URL")}\"")
         applicationId = "com.example.campusconnect"
@@ -26,6 +37,10 @@ android {
         vectorDrawables {
             useSupportLibrary = true
         }
+    }
+    buildFeatures {
+        // THIS LINE ENABLES THE BuildConfig FILE
+        buildConfig = true
     }
 
     buildTypes {
@@ -63,6 +78,9 @@ dependencies {
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.0")
     implementation("androidx.activity:activity-compose:1.9.0")
 
+
+    implementation("com.google.ai.client.generativeai:generativeai:0.5.0")
+
     // Jetpack Compose Bill of Materials (BOM) - Manages versions for all Compose libraries
     implementation(platform("androidx.compose:compose-bom:2024.05.00"))
     implementation("androidx.compose.ui:ui")
@@ -77,7 +95,7 @@ dependencies {
     // ViewModel with Compose
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.0")
 
-    
+
 
     // Firebase Bill of Materials (BOM)
     implementation(platform("com.google.firebase:firebase-bom:33.1.0"))
@@ -112,6 +130,7 @@ dependencies {
     implementation(libs.androidx.animation)
     implementation(libs.androidx.ui)
     implementation(libs.androidx.foundation.layout)
+    implementation(libs.androidx.foundation)
 
     testImplementation("junit:junit:4.13.2")
     androidTestImplementation("androidx.test.ext:junit:1.1.5")

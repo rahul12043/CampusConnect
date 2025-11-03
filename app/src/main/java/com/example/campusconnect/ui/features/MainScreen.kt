@@ -31,6 +31,7 @@ import com.example.campusconnect.ui.features.note_sharing.NoteSharingViewModel
 import com.example.campusconnect.ui.features.peerskill.CreateSkillRequestScreen
 import com.example.campusconnect.ui.features.peerskill.PeerSkillScreen
 import com.example.campusconnect.ui.features.peerskill.PeerSkillViewModel
+import com.example.campusconnect.ui.features.aiflashcard.AiFlashcardScreen
 import com.example.campusconnect.ui.features.utility.*
 import com.google.firebase.auth.ktx.auth
 import com.google.firebase.ktx.Firebase
@@ -174,12 +175,14 @@ fun MainScreen(onLogout: () -> Unit) {
             }
 
             composable(Screen.MindMingle.route) { MindMingleScreen(navController) }
-            composable(Screen.IdeaIncubator.route) { IdeaIncubatorScreen(navController) }
+
+            composable(Screen.FlashcardGenerator.route) {
+                AiFlashcardScreen() // The ViewModel is created internally
+            }
         }
     }
 }
 
-/* --- NM360 Branded Animated Title --- */
 @Composable
 fun AnimatedHomeTitle() {
     var visible by remember { mutableStateOf(false) }
