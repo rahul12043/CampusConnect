@@ -8,6 +8,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
@@ -25,13 +26,18 @@ import kotlinx.coroutines.launch
 @Composable
 fun ReportItemScreen(
     onItemReported: () -> Unit,
-    viewModel: LostAndFoundViewModel = viewModel()
+    viewModel: ReportItemViewModel = viewModel()
 ) {
-    var name by remember { mutableStateOf("") }
+    var title by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
     var location by remember { mutableStateOf("") }
     var imageUri by remember { mutableStateOf<Uri?>(null) }
     val state by viewModel.state.collectAsState()
+
+    // --- MODIFIED: Added state for selecting item type ---
+    val itemTypes = listOf("lost", "found")
+    var selectedType by remember { mutableStateOf(itemTypes[0]) }
+
 
     val imagePickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent(),
@@ -55,7 +61,35 @@ fun ReportItemScreen(
             Text("Fields marked with * are required.", style = MaterialTheme.typography.bodySmall)
             Spacer(Modifier.height(16.dp))
 
-            OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text("Item Name*") }, modifier = Modifier.fillMaxWidth())
+            // --- NEW: Radio button group to select Lost or Found ---
+            Text("What is the item type?*", style = MaterialTheme.typography.titleMedium)
+            Row(Modifier.fillMaxWidth()) {
+                itemTypes.forEach { type ->
+                    Row(
+                        Modifier
+                            .selectable(
+                                selected = (type == selectedType),
+                                onClick = { selectedType = type }
+                            )
+                            .padding(horizontal = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        RadioButton(
+                            selected = (type == selectedType),
+                            onClick = { selectedType = type }
+                        )
+                        Text(
+                            text = type.replaceFirstChar { it.uppercase() },
+                            modifier = Modifier.padding(start = 4.dp)
+                        )
+                    }
+                }
+            }
+            Spacer(Modifier.height(16.dp))
+
+
+            // --- MODIFIED: Changed label from "Item Name" to "Item Title" ---
+            OutlinedTextField(value = title, onValueChange = { title = it }, label = { Text("Item Title*") }, modifier = Modifier.fillMaxWidth())
             Spacer(Modifier.height(8.dp))
             OutlinedTextField(value = description, onValueChange = { description = it }, label = { Text("Description (Optional)") }, modifier = Modifier.fillMaxWidth(), minLines = 3)
             Spacer(Modifier.height(8.dp))
@@ -74,17 +108,17 @@ fun ReportItemScreen(
             }
             Spacer(Modifier.height(24.dp))
 
-            // Use the new isSubmitting state for the loading indicator
             if (state.isSubmitting) {
                 CircularProgressIndicator(modifier = Modifier.align(Alignment.CenterHorizontally))
             } else {
                 Button(
                     onClick = {
-                        if (name.isNotBlank() && location.isNotBlank()) {
-                            // --- FIX: This function call now matches the ViewModel ---
+                        if (title.isNotBlank() && location.isNotBlank()) {
+                            // --- MODIFIED: Function call now includes the item type and matches new ViewModel ---
                             viewModel.reportItem(
-                                name = name,
-                                description = description.takeIf { it.isNotBlank() }, // Send null if empty
+                                type = selectedType,
+                                title = title,
+                                description = description.takeIf { it.isNotBlank() },
                                 location = location,
                                 imageUri = imageUri
                             ) { success ->

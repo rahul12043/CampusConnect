@@ -70,7 +70,7 @@ fun TimetableSection(timetable: Map<String, String>) {
     val daysOfWeek = listOf("Monday", "Tuesday", "Wednesday", "Thursday", "Friday")
 
     Column(modifier = Modifier.fillMaxWidth()) {
-        Text("Weekly Timetable", style = MaterialTheme.typography.titleLarge, modifier = Modifier.padding(bottom = 8.dp))
+        Text("Weekly Availability", style = MaterialTheme.typography.titleLarge, modifier = Modifier.padding(bottom = 8.dp))
 
         daysOfWeek.forEach { day ->
             val availability = timetable[day] ?: "Not specified"

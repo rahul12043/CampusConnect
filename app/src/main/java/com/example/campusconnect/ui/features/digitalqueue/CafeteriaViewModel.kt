@@ -2,7 +2,7 @@ package com.example.campusconnect.ui.features.digitalqueue
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.campusconnect.auth.User
+import com.example.campusconnect.data.User
 import com.example.campusconnect.data.MenuItem
 import com.example.campusconnect.data.Order
 import com.google.firebase.Timestamp

@@ -2,8 +2,8 @@ package com.example.campusconnect.auth
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.campusconnect.data.User // <-- FIX: Import the correct User class from the data package
 import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.auth.ktx.auth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ktx.firestore
@@ -13,7 +13,6 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 
-// This AuthState sealed class is correct and complete.
 sealed class AuthState {
     data object Idle : AuthState()
     data object Loading : AuthState()
@@ -21,16 +20,6 @@ sealed class AuthState {
     data class Error(val message: String) : AuthState()
 }
 
-// This User data class is now in the correct context and will compile.
-data class User(
-    val uid: String = "",
-    val specializedId: String = "",
-    val contactEmail: String = "",
-    val name: String = "",
-    val role: String = "student"
-)
-
-// The complete and correct ViewModel class definition.
 class AuthViewModel : ViewModel() {
     private val auth: FirebaseAuth = Firebase.auth
     private val firestore: FirebaseFirestore = Firebase.firestore
@@ -38,6 +27,7 @@ class AuthViewModel : ViewModel() {
     private val _authState = MutableStateFlow<AuthState>(AuthState.Idle)
     val authState = _authState.asStateFlow()
 
+    // --- FIX: This StateFlow now holds the correct data.User object ---
     private val _currentUser = MutableStateFlow<User?>(null)
     val currentUser = _currentUser.asStateFlow()
 
@@ -54,19 +44,21 @@ class AuthViewModel : ViewModel() {
     }
 
     private fun fetchUserProfile(uid: String) {
-        firestore.collection("users").document(uid).get()
-            .addOnSuccessListener { document ->
+        viewModelScope.launch {
+            try {
+                val document = firestore.collection("users").document(uid).get().await()
                 if (document != null && document.exists()) {
+                    // --- FIX: Map the Firestore document to the correct data.User class ---
                     val user = document.toObject(User::class.java)
                     _currentUser.value = user
                     _authState.value = AuthState.Authenticated
                 } else {
                     _authState.value = AuthState.Error("User profile not found.")
                 }
-            }
-            .addOnFailureListener { exception ->
+            } catch (exception: Exception) {
                 _authState.value = AuthState.Error("Failed to load profile: ${exception.message}")
             }
+        }
     }
 
     fun login(specializedId: String, password: String) {
@@ -79,15 +71,15 @@ class AuthViewModel : ViewModel() {
             _authState.value = AuthState.Loading
             try {
                 auth.signInWithEmailAndPassword(authEmail, password).await()
-                // The AuthStateListener will handle fetching the user profile
+                // The AuthStateListener will automatically handle fetching the user profile
             } catch (e: Exception) {
                 _authState.value = AuthState.Error(e.message ?: "An unknown login error occurred")
             }
         }
     }
 
-    fun register(specializedId: String, contactEmail: String, name: String, password: String) {
-        if (specializedId.isBlank() || contactEmail.isBlank() || name.isBlank() || password.isBlank()) {
+    fun register(specializedId: String, contactEmail: String, fullName: String, password: String) {
+        if (specializedId.isBlank() || contactEmail.isBlank() || fullName.isBlank() || password.isBlank()) {
             _authState.value = AuthState.Error("All fields are required.")
             return
         }
@@ -100,15 +92,16 @@ class AuthViewModel : ViewModel() {
                 val result = auth.createUserWithEmailAndPassword(authEmail, password).await()
                 val firebaseUser = result.user
                 if (firebaseUser != null) {
+                    // --- FIX: Create an instance of the new data.User object ---
                     val newUser = User(
                         uid = firebaseUser.uid,
                         specializedId = specializedId,
                         contactEmail = contactEmail,
-                        name = name,
+                        fullName = fullName, // Use 'fullName' to match the data class
                         role = "student"
                     )
                     firestore.collection("users").document(firebaseUser.uid).set(newUser).await()
-                    // The AuthStateListener will handle the rest
+                    // The AuthStateListener will handle setting the state
                 } else {
                     _authState.value = AuthState.Error("Failed to create user profile.")
                 }

@@ -64,7 +64,6 @@ fun CreateNoteScreen(
     )
 
     Scaffold(
-        topBar = { TopAppBar(title = { Text("Share a New Note") }) },
         snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { padding ->
         Column(

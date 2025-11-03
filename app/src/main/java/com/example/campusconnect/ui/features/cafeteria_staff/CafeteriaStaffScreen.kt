@@ -26,15 +26,28 @@ fun CafeteriaStaffScreen(onLogout: () -> Unit) {
 
     Scaffold(
         topBar = {
+            // --- THIS IS THE FIX ---
+            // We've copied the styling directly from your MainScreen's TopAppBar
             TopAppBar(
                 title = { Text("Cafeteria Orders") },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.primary, // Red background
+                    titleContentColor = MaterialTheme.colorScheme.onPrimary // White text
+                ),
                 actions = {
                     IconButton(onClick = {
                         Firebase.auth.signOut()
                         onLogout()
-                    }) { Icon(Icons.AutoMirrored.Filled.ExitToApp, "Logout") }
+                    }) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ExitToApp,
+                            contentDescription = "Logout",
+                            tint = MaterialTheme.colorScheme.onPrimary // White icon
+                        )
+                    }
                 }
             )
+            // --- END OF FIX ---
         },
         // --- NEW: Floating Action Button to navigate to the "add item" screen ---
         floatingActionButton = {

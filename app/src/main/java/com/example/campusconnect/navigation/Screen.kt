@@ -18,16 +18,17 @@ sealed class Screen(val route: String) {
     data object PeerSkill : Screen("peer_skill_screen")
     data object IdeaIncubator : Screen("idea_incubator_screen")
 
+    // --- NEW: This is the route for creating a new Peer Skill request ---
+    data object CreateSkillRequest : Screen("create_skill_request") // <-- THIS IS THE FIX
 
     data object NoteSharing : Screen("note_sharing_screen")
     data object CreateNote : Screen("create_note_screen")
 
     // --- UPDATED: Faculty Connect Feature ---
-    // This is the route for the main list of all faculty members.
     data object FacultyConnect : Screen("faculty_connect_list")
     data object FlashcardGenerator : Screen("flashcard_generator")
     data object FlashcardViewer : Screen("flashcard_viewer")
+
     // --- NEW: This is the route for a specific faculty member's detail page.
-    // The "{facultyId}" is a placeholder that will be replaced with the actual ID.
     data object FacultyDetail : Screen("faculty_detail/{facultyId}")
 }

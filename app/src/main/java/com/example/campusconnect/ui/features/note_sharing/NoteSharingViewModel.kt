@@ -6,7 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.cloudinary.android.MediaManager
 import com.cloudinary.android.callback.ErrorInfo
 import com.cloudinary.android.callback.UploadCallback
-import com.example.campusconnect.auth.User
+import com.example.campusconnect.data.User
 import com.example.campusconnect.data.NotePost
 import com.example.campusconnect.data.Subject
 import com.google.firebase.Timestamp
@@ -125,7 +125,7 @@ class NoteSharingViewModel : ViewModel() {
                                 fileType = fileType,
                                 authorId = user.uid,
                                 authorSapId = user.specializedId, // Correctly use specializedId
-                                authorName = user.name,         // Correctly use name
+                                authorName = user.fullName,         // Correctly use name
                                 subject = formattedSubject,
                                 timestamp = Timestamp.now()
                             )

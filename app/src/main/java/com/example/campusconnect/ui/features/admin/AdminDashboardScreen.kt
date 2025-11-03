@@ -1,6 +1,8 @@
 package com.example.campusconnect.ui.features.admin
 
+import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -8,10 +10,10 @@ import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.filled.Campaign
 import androidx.compose.material.icons.filled.ManageAccounts
 import androidx.compose.material.icons.filled.Person
-import com.example.campusconnect.ui.theme.CampusConnectTheme
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -28,136 +30,133 @@ import com.google.firebase.ktx.Firebase
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AdminDashboardScreen(onLogout: () -> Unit) {
-    CampusConnectTheme {
-        val navController = rememberNavController()
-        val adminViewModel: AdminViewModel = viewModel()
-        val userManagementViewModel: UserManagementViewModel = viewModel()
+    // FIX: The redundant CampusConnectTheme wrapper has been removed.
+    val navController = rememberNavController()
+    val adminViewModel: AdminViewModel = viewModel()
+    val userManagementViewModel: UserManagementViewModel = viewModel()
 
-        val navBackStackEntry by navController.currentBackStackEntryAsState()
-        val currentRoute = navBackStackEntry?.destination?.route
+    val navBackStackEntry by navController.currentBackStackEntryAsState()
+    val currentRoute = navBackStackEntry?.destination?.route
 
-        val title = when {
-            currentRoute == "admin_home" -> "Admin Panel"
-            currentRoute == "manage_faculty" -> "Manage Faculty"
-            currentRoute == "add_faculty" -> "Add Faculty"
-            currentRoute?.startsWith("edit_faculty/") == true -> "Edit Faculty"
-            currentRoute == "manage_users" -> "Manage Users"
-            currentRoute?.startsWith("edit_user/") == true -> "Edit User"
-            currentRoute == "manage_announcements" -> "Manage Announcements"
-            currentRoute == "add_announcement" -> "Add Announcement"
-            currentRoute?.startsWith("edit_announcement/") == true -> "Edit Announcement"
-            else -> "Admin Panel"
-        }
+    val title = when {
+        currentRoute == "admin_home" -> "Admin Panel"
+        currentRoute == "manage_faculty" -> "Manage Faculty"
+        currentRoute == "add_faculty" -> "Add Faculty"
+        currentRoute?.startsWith("edit_faculty/") == true -> "Edit Faculty"
+        currentRoute == "manage_users" -> "Manage Users"
+        currentRoute?.startsWith("edit_user/") == true -> "Edit User"
+        currentRoute == "manage_announcements" -> "Manage Announcements"
+        currentRoute == "add_announcement" -> "Add Announcement"
+        currentRoute?.startsWith("edit_announcement/") == true -> "Edit Announcement"
+        else -> "Admin Panel"
+    }
 
-        Scaffold(
-            topBar = {
-                TopAppBar(
-                    title = { Text(title) },
-                    colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = MaterialTheme.colorScheme.primary,
-                        titleContentColor = MaterialTheme.colorScheme.onPrimary,
-                        navigationIconContentColor = MaterialTheme.colorScheme.onPrimary,
-                        actionIconContentColor = MaterialTheme.colorScheme.onPrimary
-                    ),
-                    navigationIcon = {
-                        if (currentRoute != "admin_home") {
-                            IconButton(onClick = { navController.navigateUp() }) {
-                                Icon(
-                                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                                    contentDescription = "Back"
-                                )
-                            }
-                        }
-                    },
-                    actions = {
-
-                        IconButton(onClick = {
-                            Firebase.auth.signOut()
-                            onLogout()
-                        }) {
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text(title) },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    titleContentColor = MaterialTheme.colorScheme.onPrimary,
+                    navigationIconContentColor = MaterialTheme.colorScheme.onPrimary,
+                    actionIconContentColor = MaterialTheme.colorScheme.onPrimary
+                ),
+                navigationIcon = {
+                    if (currentRoute != "admin_home") {
+                        IconButton(onClick = { navController.navigateUp() }) {
                             Icon(
-                                imageVector = Icons.AutoMirrored.Filled.ExitToApp,
-                                contentDescription = "Logout"
+                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = "Back"
                             )
                         }
                     }
-                )
-            }
-        ) { padding ->
-            NavHost(
-                navController = navController,
-                startDestination = "admin_home",
-                modifier = Modifier.padding(padding)
-            ) {
-                composable("admin_home") { AdminHome(navController = navController) }
-
-                composable("manage_faculty") {
-                    ManageFacultyScreen(navController = navController, viewModel = adminViewModel)
-                }
-                composable("add_faculty") {
-                    AddFacultyScreen(
-                        navController = navController,
-                        onFacultyAdded = { navController.popBackStack() },
-                        viewModel = adminViewModel
-                    )
-                }
-                composable(
-                    route = "edit_faculty/{facultyId}",
-                    arguments = listOf(navArgument("facultyId") { type = NavType.StringType })
-                ) { backStackEntry ->
-                    val facultyId = backStackEntry.arguments?.getString("facultyId")
-                    if (facultyId != null) {
-                        EditFacultyScreen(
-                            navController = navController,
-                            facultyId = facultyId,
-                            viewModel = adminViewModel
+                },
+                actions = {
+                    IconButton(onClick = {
+                        Firebase.auth.signOut()
+                        onLogout()
+                    }) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ExitToApp,
+                            contentDescription = "Logout"
                         )
                     }
                 }
-                composable("manage_users") {
-                    UserManagementScreen(
+            )
+        }
+    ) { padding ->
+        NavHost(
+            navController = navController,
+            startDestination = "admin_home",
+            modifier = Modifier.padding(padding)
+        ) {
+            composable("admin_home") { AdminHome(navController = navController) }
+            composable("manage_faculty") {
+                ManageFacultyScreen(navController = navController, viewModel = adminViewModel)
+            }
+            composable("add_faculty") {
+                AddFacultyScreen(
+                    navController = navController,
+                    onFacultyAdded = { navController.popBackStack() },
+                    viewModel = adminViewModel
+                )
+            }
+            composable(
+                route = "edit_faculty/{facultyId}",
+                arguments = listOf(navArgument("facultyId") { type = NavType.StringType })
+            ) { backStackEntry ->
+                val facultyId = backStackEntry.arguments?.getString("facultyId")
+                if (facultyId != null) {
+                    EditFacultyScreen(
                         navController = navController,
+                        facultyId = facultyId,
+                        viewModel = adminViewModel
+                    )
+                }
+            }
+            composable("manage_users") {
+                UserManagementScreen(
+                    navController = navController,
+                    viewModel = userManagementViewModel
+                )
+            }
+            composable(
+                route = "edit_user/{userId}",
+                arguments = listOf(navArgument("userId") { type = NavType.StringType })
+            ) { backStackEntry ->
+                val userId = backStackEntry.arguments?.getString("userId")
+                if (userId != null) {
+                    EditUserScreen(
+                        navController = navController,
+                        userId = userId,
                         viewModel = userManagementViewModel
                     )
                 }
-                composable(
-                    route = "edit_user/{userId}",
-                    arguments = listOf(navArgument("userId") { type = NavType.StringType })
-                ) { backStackEntry ->
-                    val userId = backStackEntry.arguments?.getString("userId")
-                    if (userId != null) {
-                        EditUserScreen(
-                            navController = navController,
-                            userId = userId,
-                            viewModel = userManagementViewModel
-                        )
-                    }
-                }
-                composable("manage_announcements") {
-                    ManageAnnouncementsScreen(
+            }
+            composable("manage_announcements") {
+                ManageAnnouncementsScreen(
+                    navController = navController,
+                    viewModel = adminViewModel
+                )
+            }
+            composable("add_announcement") {
+                AddAnnouncementScreen(
+                    navController = navController,
+                    onAnnouncementAdded = { navController.popBackStack() },
+                    viewModel = adminViewModel
+                )
+            }
+            composable(
+                route = "edit_announcement/{announcementId}",
+                arguments = listOf(navArgument("announcementId") { type = NavType.StringType })
+            ) { backStackEntry ->
+                val announcementId = backStackEntry.arguments?.getString("announcementId")
+                if (announcementId != null) {
+                    EditAnnouncementScreen(
                         navController = navController,
+                        announcementId = announcementId,
                         viewModel = adminViewModel
                     )
-                }
-                composable("add_announcement") {
-                    AddAnnouncementScreen(
-                        navController = navController,
-                        onAnnouncementAdded = { navController.popBackStack() },
-                        viewModel = adminViewModel
-                    )
-                }
-                composable(
-                    route = "edit_announcement/{announcementId}",
-                    arguments = listOf(navArgument("announcementId") { type = NavType.StringType })
-                ) { backStackEntry ->
-                    val announcementId = backStackEntry.arguments?.getString("announcementId")
-                    if (announcementId != null) {
-                        EditAnnouncementScreen(
-                            navController = navController,
-                            announcementId = announcementId,
-                            viewModel = adminViewModel
-                        )
-                    }
                 }
             }
         }
@@ -187,9 +186,14 @@ fun AdminHome(navController: NavController) {
 @Composable
 fun AdminFeatureCard(feature: AdminFeature, onClick: () -> Unit) {
     Card(
+        // FIX: The clickable modifier has been updated to be M3 compatible.
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick),
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = LocalIndication.current,
+                onClick = onClick
+            ),
         elevation = CardDefaults.cardElevation(2.dp)
     ) {
         Row(

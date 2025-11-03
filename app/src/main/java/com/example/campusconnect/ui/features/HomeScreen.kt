@@ -1,9 +1,12 @@
 package com.example.campusconnect.ui.features
 
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
+import androidx.compose.runtime.remember
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
@@ -39,13 +42,13 @@ fun HomeScreen(
     val state by homeViewModel.state.collectAsState()
 
     val features = listOf(
-        Feature("Digital Queue", Icons.Default.People, Screen.DigitalQueue.route),
+        Feature("Cafeteria", Icons.Default.People, Screen.DigitalQueue.route),
         Feature("Lost & Found", Icons.Default.Search, Screen.LostAndFound.route),
         Feature("Peer Help", Icons.Default.Forum, Screen.NoteSharing.route),
-        Feature("PeerSkill Hub", Icons.Default.School, Screen.PeerSkill.route),
+        Feature("PeerSkill Hub", Icons.Default.School, Screen.PeerSkill.route), // This line is correct
         Feature("Idea Incubator", Icons.Default.Lightbulb, Screen.IdeaIncubator.route),
         Feature("Faculty Connect", Icons.Default.PersonPin, Screen.FacultyConnect.route),
-                Feature("AI Flashcards", Icons.Default.AutoAwesome, Screen.FlashcardGenerator.route)
+        Feature("AI Flashcards", Icons.Default.AutoAwesome, Screen.FlashcardGenerator.route)
     )
 
     Column(
@@ -60,7 +63,7 @@ fun HomeScreen(
             items(features) { feature ->
                 FeatureCard(
                     feature = feature,
-                    onClick = { navController.navigate(feature.route) }
+                    onClick = { navController.navigate(feature.route) } // This correctly navigates
                 )
             }
         }
@@ -74,7 +77,6 @@ fun HomeScreen(
         }
     }
 }
-
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun AnnouncementsCarousel(announcements: List<Announcement>) {
@@ -168,7 +170,11 @@ fun FeatureCard(feature: Feature, onClick: () -> Unit) {
     Card(
         modifier = Modifier
             .aspectRatio(1f)
-            .clickable(onClick = onClick),
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = LocalIndication.current,
+                onClick = onClick
+            ),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
         Column(

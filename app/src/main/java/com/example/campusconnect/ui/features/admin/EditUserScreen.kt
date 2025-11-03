@@ -54,7 +54,7 @@ fun EditUserScreen(
                     .padding(padding)
                     .padding(2.dp)
             ) {
-                Text("Name: ${user.name}", style = MaterialTheme.typography.titleLarge)
+                Text("Name: ${user.fullName}", style = MaterialTheme.typography.titleLarge)
                 Spacer(Modifier.height(24.dp))
                 Text("ID: ${user.specializedId}", style = MaterialTheme.typography.bodyLarge)
                 Text("Email: ${user.contactEmail}", style = MaterialTheme.typography.bodyMedium)

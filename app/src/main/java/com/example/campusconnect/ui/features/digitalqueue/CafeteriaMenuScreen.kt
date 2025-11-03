@@ -13,18 +13,21 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
+// import androidx.lifecycle.viewmodel.compose.viewModel // <-- THIS IMPORT IS NO LONGER NEEDED
 import coil.compose.AsyncImage
 import com.example.campusconnect.auth.AuthViewModel
 import com.example.campusconnect.data.MenuItem
+import com.example.campusconnect.data.User // <-- You might need to import your data.User class
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CafeteriaMenuScreen(
-    cafeteriaViewModel: CafeteriaViewModel = viewModel(),
-    authViewModel: AuthViewModel = viewModel()
+    // --- FIX: The ViewModels are now passed in as parameters ---
+    viewModel: CafeteriaViewModel,
+    authViewModel: AuthViewModel
 ) {
-    val state by cafeteriaViewModel.state.collectAsState()
+    // The line creating the ViewModel is now gone. We use the one passed in.
+    val state by viewModel.state.collectAsState()
     val currentUser by authViewModel.currentUser.collectAsState()
 
     val snackbarHostState = remember { SnackbarHostState() }
@@ -33,11 +36,11 @@ fun CafeteriaMenuScreen(
         when (state.orderPlacedSuccessfully) {
             true -> {
                 snackbarHostState.showSnackbar("Order placed successfully!")
-                cafeteriaViewModel.resetOrderSuccessStatus()
+                viewModel.resetOrderSuccessStatus()
             }
             false -> {
                 snackbarHostState.showSnackbar("Failed to place order.")
-                cafeteriaViewModel.resetOrderSuccessStatus()
+                viewModel.resetOrderSuccessStatus()
             }
             null -> {}
         }
@@ -49,7 +52,8 @@ fun CafeteriaMenuScreen(
             AnimatedVisibility(visible = state.cart.isNotEmpty()) {
                 CartBottomBar(
                     cart = state.cart,
-                    onPlaceOrder = { currentUser?.let { cafeteriaViewModel.placeOrder(it) } }
+                    // The 'placeOrder' call is now safer
+                    onPlaceOrder = { currentUser?.let { user -> viewModel.placeOrder(user) } }
                 )
             }
         }
@@ -68,8 +72,8 @@ fun CafeteriaMenuScreen(
                     MenuItemCard(
                         menuItem = item,
                         cartCount = state.cart[item] ?: 0,
-                        onAddToCart = { cafeteriaViewModel.addToCart(item) },
-                        onRemoveFromCart = { cafeteriaViewModel.removeFromCart(item) }
+                        onAddToCart = { viewModel.addToCart(item) },
+                        onRemoveFromCart = { viewModel.removeFromCart(item) }
                     )
                 }
             }

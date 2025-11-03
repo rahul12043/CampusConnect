@@ -1,6 +1,8 @@
 package com.example.campusconnect.auth
 
+import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.*
@@ -89,7 +91,11 @@ fun LoginScreen(
             Spacer(modifier = Modifier.height(16.dp))
             Text(
                 text = "Don't have an account? Register",
-                modifier = Modifier.clickable { onNavigateToRegister() },
+                modifier = Modifier.clickable(
+                    interactionSource = remember { MutableInteractionSource() },
+                    indication = LocalIndication.current, // This ensures the M3 ripple is used
+                    onClick = { onNavigateToRegister() }
+                ),
                 textAlign = TextAlign.Center
             )
 
