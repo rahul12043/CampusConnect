@@ -5,6 +5,7 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.animation.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -24,6 +25,12 @@ import coil.compose.AsyncImage
 import com.example.campusconnect.auth.AuthViewModel
 import com.example.campusconnect.data.MenuItem
 import kotlinx.coroutines.delay
+import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.text.TextLayoutResult
+import androidx.compose.ui.text.style.TextOverflow
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -63,15 +70,21 @@ fun CafeteriaMenuScreen(
                 )
             }
         }
-    ) { paddingValues ->
+    ) { scaffoldPadding ->
         if (state.isLoading && state.menuItems.isEmpty()) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 CircularProgressIndicator()
             }
         } else {
+            val topPadding = scaffoldPadding.calculateTopPadding()
+            val bottomPadding = scaffoldPadding.calculateBottomPadding()
             LazyColumn(
-                modifier = Modifier.padding(paddingValues),
-                contentPadding = PaddingValues(16.dp),
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(
+                    start = 16.dp,
+                    end = 16.dp,
+                    top = topPadding,
+                    bottom = bottomPadding + 16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 items(state.menuItems) { item ->
@@ -121,45 +134,79 @@ fun MenuItemCard(
     onAddToCart: () -> Unit,
     onRemoveFromCart: () -> Unit
 ) {
-    Card(elevation = CardDefaults.cardElevation(4.dp), shape = RoundedCornerShape(12.dp)) {
-        Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
-            AsyncImage(
-                model = menuItem.imageUrl,
-                contentDescription = menuItem.name,
-                modifier = Modifier.size(90.dp).clip(RoundedCornerShape(8.dp)),
-                contentScale = ContentScale.Crop
-            )
-            Spacer(Modifier.width(16.dp))
-            Column(Modifier.weight(1f)) {
-                Text(menuItem.name, style = MaterialTheme.typography.titleLarge)
-                Text(menuItem.description, style = MaterialTheme.typography.bodyMedium)
-                Text(
-                    "₹${"%.2f".format(menuItem.price)}",
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.padding(top = 4.dp)
+    var isExpanded by remember { mutableStateOf(false) }
+
+    Card(
+        elevation = CardDefaults.cardElevation(4.dp),
+        shape = RoundedCornerShape(12.dp),
+        // --- The Card itself is now clickable to expand/collapse ---
+        modifier = Modifier.clickable(
+            interactionSource = remember { MutableInteractionSource() },
+            indication = LocalIndication.current,
+            onClick = { isExpanded = !isExpanded }
+        )
+    ) {
+        Column {
+            // --- 1. MAIN CONTENT ROW (Always visible) ---
+            Row(
+                modifier = Modifier.padding(12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                AsyncImage(
+                    model = menuItem.imageUrl,
+                    contentDescription = menuItem.name,
+                    modifier = Modifier.size(90.dp).clip(RoundedCornerShape(8.dp)),
+                    contentScale = ContentScale.Crop
                 )
-            }
-            if (cartCount == 0) {
-                Button(onClick = onAddToCart) { Text("Add") }
-            } else {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                Spacer(Modifier.width(16.dp))
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
-                    IconButton(onClick = onRemoveFromCart, modifier = Modifier.size(32.dp)) {
-                        Text("-")
+                    Text(menuItem.name, style = MaterialTheme.typography.titleLarge)
+                    Text(
+                        "₹${"%.2f".format(menuItem.price)}",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
+                Box(
+                    modifier = Modifier.width(120.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    if (cartCount == 0) {
+                        Button(onClick = onAddToCart) { Text("Add") }
+                    } else {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            IconButton(onClick = onRemoveFromCart, modifier = Modifier.size(32.dp)) { Text("-") }
+                            Text("$cartCount", style = MaterialTheme.typography.titleMedium)
+                            IconButton(onClick = onAddToCart, modifier = Modifier.size(32.dp)) { Text("+") }
+                        }
                     }
-                    Text("$cartCount", style = MaterialTheme.typography.titleMedium)
-                    IconButton(onClick = onAddToCart, modifier = Modifier.size(32.dp)) {
-                        Text("+")
-                    }
+                }
+            }
+
+            // --- 2. EXPANDABLE DESCRIPTION SECTION (Animated) ---
+            AnimatedVisibility(
+                visible = isExpanded,
+                // --- THE "COOL" JETSACK-STYLE ANIMATION ---
+                enter = fadeIn(animationSpec = tween(300)) + expandVertically(animationSpec = tween(300)),
+                exit = fadeOut(animationSpec = tween(300)) + shrinkVertically(animationSpec = tween(300))
+            ) {
+                Column(modifier = Modifier.padding(start = 12.dp, end = 12.dp, bottom = 12.dp)) {
+                    Divider(modifier = Modifier.padding(bottom = 12.dp))
+                    Text(
+                        text = menuItem.description,
+                        style = MaterialTheme.typography.bodyMedium
+                    )
                 }
             }
         }
     }
 }
-
 @Composable
 fun CartBottomBar(cart: Map<MenuItem, Int>, onPlaceOrder: () -> Unit) {
     val totalPrice = cart.entries.sumOf { (item, quantity) -> item.price * quantity }

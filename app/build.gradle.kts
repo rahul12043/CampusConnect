@@ -80,6 +80,7 @@ dependencies {
 
 
     implementation("com.google.ai.client.generativeai:generativeai:0.5.0")
+    implementation("com.tom-roush:pdfbox-android:2.0.7.0")
 
     // Jetpack Compose Bill of Materials (BOM) - Manages versions for all Compose libraries
     implementation(platform("androidx.compose:compose-bom:2024.05.00"))
@@ -94,7 +95,6 @@ dependencies {
 
     // ViewModel with Compose
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.0")
-
 
 
     // Firebase Bill of Materials (BOM)
@@ -131,6 +131,7 @@ dependencies {
     implementation(libs.androidx.ui)
     implementation(libs.androidx.foundation.layout)
     implementation(libs.androidx.foundation)
+    implementation(libs.androidx.animation.core)
 
     testImplementation("junit:junit:4.13.2")
     androidTestImplementation("androidx.test.ext:junit:1.1.5")

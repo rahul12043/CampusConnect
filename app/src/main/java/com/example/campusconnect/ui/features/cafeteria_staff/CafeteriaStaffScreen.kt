@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.*
@@ -11,8 +12,10 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.example.campusconnect.data.Order
 import com.google.firebase.auth.ktx.auth
@@ -21,102 +24,115 @@ import com.google.firebase.ktx.Firebase
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CafeteriaStaffScreen(onLogout: () -> Unit) {
-    // This NavController is now local to the Cafeteria Staff's workflow
     val navController = rememberNavController()
+    val navBackStackEntry by navController.currentBackStackEntryAsState()
+    val currentRoute = navBackStackEntry?.destination?.route
+
+    val title = when (currentRoute) {
+        "order_list" -> "Cafeteria Orders"
+        "add_item" -> "Add New Menu Item"
+        else -> "Cafeteria Panel"
+    }
 
     Scaffold(
         topBar = {
-            // --- THIS IS THE FIX ---
-            // We've copied the styling directly from your MainScreen's TopAppBar
             TopAppBar(
-                title = { Text("Cafeteria Orders") },
+                title = { Text(title) },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primary, // Red background
-                    titleContentColor = MaterialTheme.colorScheme.onPrimary // White text
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    titleContentColor = MaterialTheme.colorScheme.onPrimary,
+                    actionIconContentColor = MaterialTheme.colorScheme.onPrimary,
+                    navigationIconContentColor = MaterialTheme.colorScheme.onPrimary
                 ),
+                navigationIcon = {
+                    // Show back button only on the "add_item" screen
+                    if (currentRoute == "add_item") {
+                        IconButton(onClick = { navController.navigateUp() }) {
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        }
+                    }
+                },
                 actions = {
                     IconButton(onClick = {
                         Firebase.auth.signOut()
                         onLogout()
                     }) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ExitToApp,
-                            contentDescription = "Logout",
-                            tint = MaterialTheme.colorScheme.onPrimary // White icon
-                        )
+                        Icon(Icons.AutoMirrored.Filled.ExitToApp, contentDescription = "Logout")
                     }
                 }
             )
-            // --- END OF FIX ---
         },
-        // --- NEW: Floating Action Button to navigate to the "add item" screen ---
         floatingActionButton = {
-            FloatingActionButton(onClick = { navController.navigate("add_item") }) {
-                Icon(Icons.Default.Add, contentDescription = "Add Menu Item")
+            // Only show the FAB on the order list screen
+            if (currentRoute == "order_list") {
+                FloatingActionButton(onClick = { navController.navigate("add_item") }) {
+                    Icon(Icons.Default.Add, contentDescription = "Add Menu Item")
+                }
             }
         }
     ) { padding ->
-        // --- NEW: NavHost to manage the staff's screens (Order List vs. Add Item Form) ---
         NavHost(
             navController = navController,
             startDestination = "order_list",
             modifier = Modifier.padding(padding)
         ) {
             composable("order_list") {
-                // The original order list UI is now its own composable
-                OrderListScreen()
+                OrderListScreen() // Pass the shared ViewModel implicitly
             }
             composable("add_item") {
-                // The new screen for adding items
-                AddMenuItemScreen(onItemAdded = {
-                    // Go back to the order list after an item is successfully added
-                    navController.popBackStack()
-                })
+                // Pass the NavController so the screen can navigate itself back on success
+                AddMenuItemScreen(navController = navController)
             }
         }
     }
 }
 
-// --- NEW: The original LazyColumn is extracted into its own composable ---
+
 @Composable
 fun OrderListScreen(viewModel: CafeteriaStaffViewModel = viewModel()) {
     val state by viewModel.state.collectAsState()
 
-    LazyColumn(
-        modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
-        item { Text("New Orders", style = MaterialTheme.typography.headlineSmall) }
-        if (state.newOrders.isEmpty()) {
-            item { Text("No new orders.") }
+    if (state.isLoading && state.newOrders.isEmpty() && state.preparingOrders.isEmpty()) {
+        Box(modifier = Modifier.fillMaxSize(), contentAlignment = androidx.compose.ui.Alignment.Center) {
+            CircularProgressIndicator()
         }
-        items(state.newOrders) { order ->
-            OrderCard(
-                order = order,
-                actionText = "Start Preparing",
-                onActionClick = { viewModel.updateOrderStatus(order.orderId, "PREPARING") }
-            )
-        }
+    } else {
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            item { Text("New Orders", style = MaterialTheme.typography.headlineSmall) }
+            if (state.newOrders.isEmpty()) {
+                item { Text("No new orders.") }
+            }
+            items(state.newOrders) { order ->
+                OrderCard(
+                    order = order,
+                    actionText = "Start Preparing",
+                    onActionClick = { viewModel.updateOrderStatus(order.orderId, "PREPARING") }
+                )
+            }
 
-        item {
-            HorizontalDivider(modifier = Modifier.padding(vertical = 16.dp))
-            Text("Currently Preparing", style = MaterialTheme.typography.headlineSmall)
-        }
-        if (state.preparingOrders.isEmpty()) {
-            item { Text("No orders are being prepared.") }
-        }
-        items(state.preparingOrders) { order ->
-            OrderCard(
-                order = order,
-                actionText = "Ready for Pickup",
-                onActionClick = { viewModel.updateOrderStatus(order.orderId, "READY_FOR_PICKUP") }
-            )
+            item {
+                Divider(modifier = Modifier.padding(vertical = 16.dp))
+                Text("Currently Preparing", style = MaterialTheme.typography.headlineSmall)
+            }
+            if (state.preparingOrders.isEmpty()) {
+                item { Text("No orders are being prepared.") }
+            }
+            items(state.preparingOrders) { order ->
+                OrderCard(
+                    order = order,
+                    actionText = "Ready for Pickup",
+                    onActionClick = { viewModel.updateOrderStatus(order.orderId, "READY_FOR_PICKUP") }
+                )
+            }
         }
     }
 }
 
-// This composable remains unchanged, it's perfect as is.
+
 @Composable
 fun OrderCard(order: Order, actionText: String, onActionClick: () -> Unit) {
     Card(Modifier.fillMaxWidth(), elevation = CardDefaults.cardElevation(2.dp)) {

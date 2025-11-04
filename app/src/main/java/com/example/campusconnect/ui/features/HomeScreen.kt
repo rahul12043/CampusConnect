@@ -47,7 +47,8 @@ fun HomeScreen(
         Feature("Peer Help", Icons.Default.Forum, Screen.NoteSharing.route),
         Feature("PeerSkill Hub", Icons.Default.School, Screen.PeerSkill.route), // This line is correct
         Feature("Faculty Connect", Icons.Default.PersonPin, Screen.FacultyConnect.route),
-        Feature("AI Flashcards", Icons.Default.AutoAwesome, Screen.FlashcardGenerator.route)
+        Feature("AI Flashcards", Icons.Default.AutoAwesome, Screen.FlashcardGenerator.route),
+        Feature("AI From File", Icons.Default.UploadFile, Screen.AiFromFile.route)
     )
 
     Column(

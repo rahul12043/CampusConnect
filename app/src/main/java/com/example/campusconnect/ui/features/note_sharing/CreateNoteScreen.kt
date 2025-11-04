@@ -1,8 +1,8 @@
 package com.example.campusconnect.ui.features.note_sharing
 
-import android.content.Context
+import android.content.ContentResolver
 import android.net.Uri
-import android.webkit.MimeTypeMap
+import android.provider.OpenableColumns
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
@@ -17,12 +17,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.example.campusconnect.auth.AuthViewModel
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
-import java.io.File
-import java.io.FileOutputStream
-import java.io.InputStream
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -31,40 +26,34 @@ fun CreateNoteScreen(
     authViewModel: AuthViewModel,
     noteViewModel: NoteSharingViewModel = viewModel()
 ) {
+
     var title by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
     var subject by remember { mutableStateOf("") }
-    var localFileUri by remember { mutableStateOf<Uri?>(null) }
+    var fileUri by remember { mutableStateOf<Uri?>(null) }
     var fileName by remember { mutableStateOf("No file selected") }
 
     val user by authViewModel.currentUser.collectAsState()
     val state by noteViewModel.state.collectAsState()
     val context = LocalContext.current
+    val contentResolver = context.contentResolver // Get the content resolver
     val scope = rememberCoroutineScope()
     var isDropdownExpanded by remember { mutableStateOf(false) }
     val snackbarHostState = remember { SnackbarHostState() }
 
+    // Simplified file picker launcher
     val filePickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument(),
         onResult = { uri: Uri? ->
-            uri?.let {
-                scope.launch {
-                    val tempFileUri = createTempFileFromUri(context, it)
-                    if (tempFileUri != null) {
-                        localFileUri = tempFileUri
-                        fileName = it.pathSegments.lastOrNull()?.substringAfterLast('/') ?: "File selected"
-                    } else {
-                        scope.launch {
-                            snackbarHostState.showSnackbar("Could not access the selected file.")
-                        }
-                    }
-                }
-            }
+            fileUri = uri
+            // Get the filename directly from the Uri
+            fileName = uri?.let { getFileName(it, contentResolver) } ?: "No file selected"
         }
     )
 
     Scaffold(
-        snackbarHost = { SnackbarHost(snackbarHostState) }
+        snackbarHost = { SnackbarHost(snackbarHostState) },
+        topBar = { TopAppBar(title = { Text("Share a New Note") }) }
     ) { padding ->
         Column(
             modifier = Modifier
@@ -74,20 +63,9 @@ fun CreateNoteScreen(
                 .verticalScroll(rememberScrollState()),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            OutlinedTextField(
-                value = title,
-                onValueChange = { title = it },
-                label = { Text("Title*") },
-                modifier = Modifier.fillMaxWidth()
-            )
+            OutlinedTextField(value = title, onValueChange = { title = it }, label = { Text("Title*") }, modifier = Modifier.fillMaxWidth())
             Spacer(Modifier.height(8.dp))
-            OutlinedTextField(
-                value = description,
-                onValueChange = { description = it },
-                label = { Text("Description (Optional)") },
-                modifier = Modifier.fillMaxWidth(),
-                minLines = 3
-            )
+            OutlinedTextField(value = description, onValueChange = { description = it }, label = { Text("Description (Optional)") }, modifier = Modifier.fillMaxWidth(), minLines = 3)
             Spacer(Modifier.height(16.dp))
 
             ExposedDropdownMenuBox(
@@ -123,7 +101,7 @@ fun CreateNoteScreen(
 
             Spacer(Modifier.height(16.dp))
             Button(onClick = { filePickerLauncher.launch(arrayOf("application/pdf", "image/*", "application/msword", "application/vnd.openxmlformats-officedocument.wordprocessingml.document")) }) {
-                Text("Select File*")
+                Text(if (fileUri == null) "Select File*" else "Change File")
             }
             Text(fileName, style = MaterialTheme.typography.bodySmall)
 
@@ -135,28 +113,33 @@ fun CreateNoteScreen(
                 Button(
                     onClick = {
                         val currentUser = user
-                        val currentFileUri = localFileUri
+                        val currentFileUri = fileUri
                         if (title.isBlank() || subject.isBlank() || currentUser == null || currentFileUri == null) {
                             scope.launch { snackbarHostState.showSnackbar("Please fill all required (*) fields.") }
                             return@Button
                         }
 
-                        val fileType = getMimeType(context, currentFileUri) ?: "file"
+                        // --- THIS IS THE FIX ---
+                        // 1. Get the MIME type directly.
+                        val fileType = contentResolver.getType(currentFileUri) ?: "application/octet-stream"
 
+                        // 2. Call the ViewModel with all required parameters.
                         noteViewModel.uploadNote(
                             user = currentUser,
                             title = title,
                             description = description.takeIf { it.isNotBlank() },
                             subject = subject,
                             fileUri = currentFileUri,
-                            fileType = fileType
-                        ) { success ->
-                            if (success) {
-                                navController.popBackStack()
-                            } else {
-                                scope.launch { snackbarHostState.showSnackbar("Upload failed. Please check your connection and try again.") }
+                            fileType = fileType,
+                            contentResolver = contentResolver, // Pass the contentResolver
+                            onComplete = { success ->
+                                if (success) {
+                                    navController.popBackStack()
+                                } else {
+                                    scope.launch { snackbarHostState.showSnackbar("Upload failed. Please try again.") }
+                                }
                             }
-                        }
+                        )
                     },
                     modifier = Modifier.fillMaxWidth().height(50.dp)
                 ) {
@@ -167,30 +150,16 @@ fun CreateNoteScreen(
     }
 }
 
-private suspend fun createTempFileFromUri(context: Context, uri: Uri): Uri? {
-    return withContext(Dispatchers.IO) {
-        var inputStream: InputStream? = null
-        var outputStream: FileOutputStream? = null
-        try {
-            inputStream = context.contentResolver.openInputStream(uri)
-            val tempFile = File.createTempFile("upload_", ".tmp", context.cacheDir)
-            outputStream = FileOutputStream(tempFile)
-
-            inputStream?.copyTo(outputStream)
-
-            Uri.fromFile(tempFile)
-        } catch (e: Exception) {
-            e.printStackTrace()
-            null
-        } finally {
-            inputStream?.close()
-            outputStream?.close()
+// Helper function to get the original filename from a content Uri
+private fun getFileName(uri: Uri, contentResolver: ContentResolver): String {
+    var name = "File selected"
+    contentResolver.query(uri, null, null, null, null)?.use { cursor ->
+        if (cursor.moveToFirst()) {
+            val nameIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
+            if (nameIndex != -1) {
+                name = cursor.getString(nameIndex)
+            }
         }
     }
-}
-
-private fun getMimeType(context: Context, uri: Uri): String? {
-    return context.contentResolver.getType(uri)?.let { mimeType ->
-        MimeTypeMap.getSingleton().getExtensionFromMimeType(mimeType)
-    }
+    return name
 }

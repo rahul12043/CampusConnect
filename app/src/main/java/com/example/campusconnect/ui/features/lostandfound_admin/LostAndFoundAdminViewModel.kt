@@ -73,6 +73,17 @@ class LostAndFoundAdminViewModel : ViewModel() {
         }
     }
 
+    suspend fun deleteItem(itemId: String): Boolean {
+        if (itemId.isBlank()) return false
+        return try {
+            itemsCollection.document(itemId).delete().await()
+            Log.d("L&F_AdminVM", "Successfully deleted item $itemId")
+            true
+        } catch (e: Exception) {
+            Log.e("L&F_AdminVM", "Failed to delete item $itemId", e)
+            false
+        }
+    }
     /**
      * NEW: Confirms a claim, marking the item as resolved.
      */

@@ -32,7 +32,7 @@ import com.example.campusconnect.ui.features.peerskill.CreateSkillRequestScreen
 import com.example.campusconnect.ui.features.peerskill.PeerSkillScreen
 import com.example.campusconnect.ui.features.peerskill.PeerSkillViewModel
 import com.example.campusconnect.ui.features.aiflashcard.AiFlashcardScreen
-import com.example.campusconnect.ui.features.utility.*
+import com.example.campusconnect.ui.features.aiflashcard.AiFromFileScreen
 import com.google.firebase.auth.ktx.auth
 import com.google.firebase.ktx.Firebase
 import androidx.compose.animation.*
@@ -56,7 +56,8 @@ fun MainScreen(onLogout: () -> Unit) {
         currentRoute == Screen.PeerSkill.route -> "PeerSkill Hub"
         currentRoute == Screen.CreateSkillRequest.route -> "Request Help"
         currentRoute == Screen.FacultyConnect.route -> "Faculty Directory"
-        currentRoute == Screen.FlashcardGenerator.route -> "AI Flashcard Generator"
+        currentRoute == Screen.FlashcardGenerator.route -> "AI Flashcard Generator" // Title for the first AI screen
+        currentRoute == Screen.AiFromFile.route -> "AI From Document"
         currentRoute?.startsWith("faculty_detail/") == true -> "Faculty Details"
         else -> "Campus Connect+"
     }
@@ -174,10 +175,11 @@ fun MainScreen(onLogout: () -> Unit) {
                 }
             }
 
-            composable(Screen.MindMingle.route) { MindMingleScreen(navController) }
-
             composable(Screen.FlashcardGenerator.route) {
                 AiFlashcardScreen() // The ViewModel is created internally
+            }
+            composable(Screen.AiFromFile.route) {
+                AiFromFileScreen()
             }
         }
     }

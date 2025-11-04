@@ -9,6 +9,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -35,6 +36,7 @@ fun LostAndFoundAdminScreen(onLogout: () -> Unit) {
     val snackbarHostState = remember { SnackbarHostState() }
 
     var selectedItem by remember { mutableStateOf<LostFoundItem?>(null) }
+    var itemToDelete by remember { mutableStateOf<LostFoundItem?>(null) }
     var isUpdating by remember { mutableStateOf(false) }
 
     Scaffold(
@@ -42,7 +44,7 @@ fun LostAndFoundAdminScreen(onLogout: () -> Unit) {
             TopAppBar(
                 title = {
                     Text(
-                        text = "L&F Admin Panel", // Use a static title or pass one in
+                        text = "L&F Admin Panel",
                         style = MaterialTheme.typography.titleLarge.copy(
                             fontWeight = FontWeight.Bold
                         )
@@ -51,7 +53,7 @@ fun LostAndFoundAdminScreen(onLogout: () -> Unit) {
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.primary,
                     titleContentColor = MaterialTheme.colorScheme.onPrimary,
-                    actionIconContentColor = MaterialTheme.colorScheme.onPrimary // Color for logout icon
+                    actionIconContentColor = MaterialTheme.colorScheme.onPrimary
                 ),
                 actions = {
                     IconButton(onClick = {
@@ -68,7 +70,6 @@ fun LostAndFoundAdminScreen(onLogout: () -> Unit) {
         },
         snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { padding ->
-        // The rest of your code remains the same as it was correct.
         if (state.isLoading && state.pendingItems.isEmpty() && state.verifiedItems.isEmpty() && state.pendingClaims.isEmpty()) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
         } else {
@@ -102,7 +103,10 @@ fun LostAndFoundAdminScreen(onLogout: () -> Unit) {
                     item { Text("No items are currently verified.") }
                 }
                 items(state.verifiedItems) { item ->
-                    DisplayOnlyItemCard(item = item)
+                    VerifiedItemCard(
+                        item = item,
+                        onDeleteClick = { itemToDelete = item }
+                    )
                 }
             }
         }
@@ -166,6 +170,35 @@ fun LostAndFoundAdminScreen(onLogout: () -> Unit) {
             )
         }
     }
+
+    itemToDelete?.let { item ->
+        AlertDialog(
+            onDismissRequest = { itemToDelete = null },
+            title = { Text("Confirm Deletion") },
+            text = { Text("Are you sure you want to permanently delete the item '${item.title}'? This action cannot be undone.") },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        scope.launch {
+                            viewModel.deleteItem(item.id).also { success ->
+                                val message = if (success) "Item deleted successfully." else "Failed to delete item."
+                                snackbarHostState.showSnackbar(message)
+                            }
+                            itemToDelete = null
+                        }
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+                ) {
+                    Text("Delete")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { itemToDelete = null }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
 }
 
 @Composable
@@ -198,7 +231,10 @@ fun AdminItemCard(item: LostFoundItem, onClick: () -> Unit) {
 }
 
 @Composable
-fun DisplayOnlyItemCard(item: LostFoundItem) {
+fun VerifiedItemCard(
+    item: LostFoundItem,
+    onDeleteClick: () -> Unit
+) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         elevation = CardDefaults.cardElevation(1.dp),
@@ -212,6 +248,13 @@ fun DisplayOnlyItemCard(item: LostFoundItem) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(item.title, style = MaterialTheme.typography.titleMedium)
                 Text("Location: ${item.location}", style = MaterialTheme.typography.bodyMedium)
+            }
+            IconButton(onClick = onDeleteClick) {
+                Icon(
+                    imageVector = Icons.Default.Delete,
+                    contentDescription = "Delete Item",
+                    tint = MaterialTheme.colorScheme.error
+                )
             }
         }
     }

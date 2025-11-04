@@ -27,7 +27,7 @@ sealed class Screen(val route: String) {
     // --- UPDATED: Faculty Connect Feature ---
     data object FacultyConnect : Screen("faculty_connect_list")
     data object FlashcardGenerator : Screen("flashcard_generator")
-    data object FlashcardViewer : Screen("flashcard_viewer")
+         object AiFromFile : Screen("ai_from_file")
 
     // --- NEW: This is the route for a specific faculty member's detail page.
     data object FacultyDetail : Screen("faculty_detail/{facultyId}")
